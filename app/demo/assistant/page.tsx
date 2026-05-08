@@ -1,0 +1,14 @@
+"use client";
+import { useState } from "react";
+import { Bot, Send } from "lucide-react";
+import { Badge, Button, Card } from "@/components/ui";
+import { customers, expenses, invoices } from "@/lib/demo-data";
+
+const quick = ["Quelles factures dois-je relancer aujourd’hui ?", "Combien mes clients me doivent ?", "Quelle est ma plus grosse dépense ?", "Que dois-je envoyer au comptable ?"];
+
+export default function Assistant(){
+ const [messages,setMessages]=useState<{role:'user'|'assistant',content:string}[]>([{role:'assistant',content:"Ia ora na, je suis ton assistant ManaPro. Je réponds uniquement avec les données de démonstration disponibles."}]);
+ const [input,setInput]=useState(''); const [loading,setLoading]=useState(false);
+ async function ask(q=input){ if(!q.trim()) return; setInput(''); setMessages(m=>[...m,{role:'user',content:q}]); setLoading(true); try{ const res=await fetch('/api/assistant',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q, data:{customers,invoices,expenses}})}); const json=await res.json(); setMessages(m=>[...m,{role:'assistant',content:json.answer||'Je ne peux pas répondre avec les données disponibles.'}]); }catch{ setMessages(m=>[...m,{role:'assistant',content:'Erreur : assistant non configuré. Ajoute OPENAI_API_KEY ou utilise les réponses de démonstration.'}]); } finally{setLoading(false)} }
+ return <div><Badge>IA anti-hallucination</Badge><h1 className="mt-3 text-3xl font-black text-ocean">Assistant IA</h1><p className="text-slate-600">Répond uniquement à partir des données disponibles.</p><Card className="mt-8"><div className="mb-4 flex flex-wrap gap-2">{quick.map(q=><button key={q} onClick={()=>ask(q)} className="rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200">{q}</button>)}</div><div className="h-[420px] space-y-4 overflow-y-auto rounded-2xl bg-slate-50 p-4">{messages.map((m,i)=><div key={i} className={m.role==='user'?'ml-auto max-w-[80%] rounded-2xl bg-ocean p-4 text-sm text-white':'mr-auto max-w-[80%] rounded-2xl bg-white p-4 text-sm text-slate-700 shadow-sm'}>{m.role==='assistant' && <Bot className="mb-2 h-4 w-4 text-lagoon"/>}<p className="whitespace-pre-wrap">{m.content}</p></div>)}{loading && <p className="text-sm text-slate-500">Analyse des données disponibles…</p>}</div><div className="mt-4 flex gap-2"><input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter') ask()}} className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:ring-2 focus:ring-lagoon" placeholder="Pose une question sur tes factures, dépenses ou clients…"/><button onClick={()=>ask()} className="inline-flex items-center justify-center rounded-2xl bg-ocean px-5 py-3 text-sm font-semibold text-white">Envoyer <Send className="ml-2 h-4 w-4"/></button></div></Card></div>
+}
